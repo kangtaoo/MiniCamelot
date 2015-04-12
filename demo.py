@@ -16,39 +16,19 @@ class GameBoard(tk.Frame):
         self.color = color
         self.pieces = {}
         ''' blackBlocks contains all squares that should be marked as black''' 
-        self.blackBlocks = set()
+        black_list = [
+                      (0,0),(0,0),(0,1),(0,2),(0,5),(0,6),(0,7)
+                      ,(1,0),(1,1),(1,6),(1,7)
+                      ,(2,0),(2,7)
+                      ,(11,0),(11,7)
+                      ,(12,0),(12,1),(12,6),(12,7)
+                      ,(13,0),(13,1),(13,2),(13,5),(13,6),(13,7)
+                      ]
+        self.blackBlocks = set(black_list)
+
         ''' castle's contains all squares that should be marked as castles'''
-        self.castles = set()
-
-        self.blackBlocks.add((0,0))
-        self.blackBlocks.add((0,1))
-        self.blackBlocks.add((0,2))
-        self.blackBlocks.add((0,5))
-        self.blackBlocks.add((0,6))
-        self.blackBlocks.add((0,7))
-        self.blackBlocks.add((1,0))
-        self.blackBlocks.add((1,1))
-        self.blackBlocks.add((1,6))
-        self.blackBlocks.add((1,7))
-        self.blackBlocks.add((2,0))
-        self.blackBlocks.add((2,7))
-        self.blackBlocks.add((11,0))
-        self.blackBlocks.add((11,7))
-        self.blackBlocks.add((12,0))
-        self.blackBlocks.add((12,1))
-        self.blackBlocks.add((12,6))
-        self.blackBlocks.add((12,7))
-        self.blackBlocks.add((13,0))
-        self.blackBlocks.add((13,1))
-        self.blackBlocks.add((13,2))
-        self.blackBlocks.add((13,5))
-        self.blackBlocks.add((13,6))
-        self.blackBlocks.add((13,7))
-
-        self.castles.add((0,3))
-        self.castles.add((0,4))
-        self.castles.add((13,3))
-        self.castles.add((13,4))
+        castle_list = [(0,3),(0,4),(13,3),(13,4)]
+        self.castles = set(castle_list)
 
         canvas_width = columns * size
         canvas_height = rows * size
@@ -58,21 +38,47 @@ class GameBoard(tk.Frame):
                                 width=canvas_width, height=canvas_height, background="white")
         self.canvas.pack(side="top", fill="both", expand=True, padx=2, pady=2)
 
+
+        self.white = tk.PhotoImage(file="white.gif")
+        self.black = tk.PhotoImage(file="black.gif")
+
+        self.add_piece("player1_1", self.white, 4,2)
+        self.add_piece("player1_2", self.white, 4,3)
+        self.add_piece("player1_3", self.white, 4,4)
+        self.add_piece("player1_4", self.white, 4,5)
+        self.add_piece("player1_5", self.white, 5,3)
+        self.add_piece("player1_6", self.white, 5,4)
+        self.add_piece("player2_1", self.black, 8,3)
+        self.add_piece("player2_2", self.black, 8,4)
+        self.add_piece("player2_3", self.black, 9,2)
+        self.add_piece("player2_4", self.black, 9,3)
+        self.add_piece("player2_5", self.black, 9,4)
+        self.add_piece("player2_6", self.black, 9,5)
+
+
+        print("in __init__")
+
         # this binding will cause a refresh if the user interactively
         # changes the window size
         self.canvas.bind("<Configure>", self.refresh)
+        self.canvas.bind("<Button-1>", self.onClick)
 
-    def addpiece(self, name, image, row=0, column=0):
+    def add_piece(self, name, image, row=0, column=0):
         '''Add a piece to the playing board'''
         self.canvas.create_image(0,0, image=image, tags=(name, "piece"), anchor="c")
-        self.placepiece(name, row, column)
+        self.place_piece(name, row, column)
 
-    def placepiece(self, name, row, column):
+        # print("in addpiece")
+
+    def place_piece(self, name, row, column):
         '''Place a piece at the given row/column'''
-        self.pieces[name] = (row, column)
+        # self.pieces[name] = (row, column)
+        self.pieces[(row,column)] = name
         x0 = (column * self.size) + int(self.size/2)
         y0 = (row * self.size) + int(self.size/2)
         self.canvas.coords(name, x0, y0)
+
+        # print("in placepiece")
 
     def refresh(self, event):
         '''Redraw the board, possibly in response to window being resized'''
@@ -95,10 +101,26 @@ class GameBoard(tk.Frame):
                 else:
                   self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
                 # color = self.color1 if color == self.color2 else self.color2
-        for name in self.pieces:
-            self.placepiece(name, self.pieces[name][0], self.pieces[name][1])
+        for position in self.pieces:
+            self.place_piece(self.pieces[position], position[0], position[1])
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
+
+        # print("refreshed")
+
+    def onClick(self, event):
+      col = int(event.x/self.size)
+      row = int(event.y/self.size)
+
+      if (row,col) in self.pieces:
+        self.canvas.delete(self.pieces[(row,col)])
+        self.pieces.pop((row,col))
+
+        
+
+      # self.add_piece("player", self.white, row, col)
+      print(self.pieces)
+      
 
 
 # image comes from the silk icon set which is under a Creative Commons
@@ -109,21 +131,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     board = GameBoard(root)
     board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
-    white = tk.PhotoImage(file="white.gif")
-    black = tk.PhotoImage(file="black.gif")
-    board.addpiece("player1_1", white, 4,2)
-    board.addpiece("player1_2", white, 4,3)
-    board.addpiece("player1_3", white, 4,4)
-    board.addpiece("player1_4", white, 4,5)
-    board.addpiece("player1_5", white, 5,3)
-    board.addpiece("player1_6", white, 5,4)
-
-    board.addpiece("player2_1", black, 8,3)
-    board.addpiece("player2_2", black, 8,4)
-    board.addpiece("player2_3", black, 9,2)
-    board.addpiece("player2_4", black, 9,3)
-    board.addpiece("player2_5", black, 9,4)
-    board.addpiece("player2_6", black, 9,5)
-
 
     root.mainloop()
+
+    print("in if")
