@@ -14,7 +14,8 @@ class GameBoard(tk.Frame):
         self.columns = columns
         self.size = size
         self.color = color
-        self.pieces = {}
+        self.whitePieces = {}
+        self.blackPieces = {}
         ''' blackBlocks contains all squares that should be marked as black''' 
         black_list = [
                       (0,0),(0,0),(0,1),(0,2),(0,5),(0,6),(0,7)
@@ -42,18 +43,22 @@ class GameBoard(tk.Frame):
         self.white = tk.PhotoImage(file="white.gif")
         self.black = tk.PhotoImage(file="black.gif")
 
-        self.add_piece("player1_1", self.white, 4,2)
-        self.add_piece("player1_2", self.white, 4,3)
-        self.add_piece("player1_3", self.white, 4,4)
-        self.add_piece("player1_4", self.white, 4,5)
-        self.add_piece("player1_5", self.white, 5,3)
-        self.add_piece("player1_6", self.white, 5,4)
-        self.add_piece("player2_1", self.black, 8,3)
-        self.add_piece("player2_2", self.black, 8,4)
-        self.add_piece("player2_3", self.black, 9,2)
-        self.add_piece("player2_4", self.black, 9,3)
-        self.add_piece("player2_5", self.black, 9,4)
-        self.add_piece("player2_6", self.black, 9,5)
+        self.add_piece("white_1", self.white, 4,2)
+        self.add_piece("white_2", self.white, 4,3)
+        self.add_piece("white_3", self.white, 4,4)
+        self.add_piece("white_4", self.white, 4,5)
+        self.add_piece("white_5", self.white, 5,3)
+        self.add_piece("white_6", self.white, 5,4)
+
+        self.add_piece("black_1", self.black, 8,3)
+        self.add_piece("black_2", self.black, 8,4)
+        self.add_piece("black_3", self.black, 9,2)
+        self.add_piece("black_4", self.black, 9,3)
+        self.add_piece("black_5", self.black, 9,4)
+        self.add_piece("black_6", self.black, 9,5)
+
+        # will record piece name that can be recongnized by canvas
+        self.curPiece = None
 
 
         print("in __init__")
@@ -72,8 +77,10 @@ class GameBoard(tk.Frame):
 
     def place_piece(self, name, row, column):
         '''Place a piece at the given row/column'''
-        # self.pieces[name] = (row, column)
-        self.pieces[(row,column)] = name
+        if "white" in name:
+            self.whitePieces[(row,column)] = name
+        if "black" in name:
+            self.blackPieces[(row,column)] = name
         x0 = (column * self.size) + int(self.size/2)
         y0 = (row * self.size) + int(self.size/2)
         self.canvas.coords(name, x0, y0)
@@ -95,31 +102,50 @@ class GameBoard(tk.Frame):
                 x2 = x1 + self.size
                 y2 = y1 + self.size
                 if self.blackBlocks.__contains__((row,col)):
-                  self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="black", tags="square")
+                    self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="black", tags="square")
                 elif self.castles.__contains__((row,col)):
-                  self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="gray", tags="square")
+                    self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="gray", tags="square")
                 else:
-                  self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
+                    self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
                 # color = self.color1 if color == self.color2 else self.color2
-        for position in self.pieces:
-            self.place_piece(self.pieces[position], position[0], position[1])
+        for position in self.whitePieces:
+            self.place_piece(self.whitePieces[position], position[0], position[1])
+        for position in self.blackPieces:
+            self.place_piece(self.blackPieces[position], position[0], position[1])
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
         # print("refreshed")
 
     def onClick(self, event):
-      col = int(event.x/self.size)
-      row = int(event.y/self.size)
+        col = int(event.x/self.size)
+        row = int(event.y/self.size)
+        print("position: " + str(row) + " " + str(col))
 
-      if (row,col) in self.pieces:
-        self.canvas.delete(self.pieces[(row,col)])
-        self.pieces.pop((row,col))
+        # click on piece
+        if (row,col) in self.legalPiece:
+            self.curPiece = (row,col)
+            print("currentlly selected pieces: " + str((row,col)) + " " + self.pieces[(row,col)])
+            print("Selected piece: " + str(self.curPiece))
 
-        
+        # click on non-piece block
+        elif self.curPiece is not None:
+            name = self.pieces[self.curPiece]
+            print("Going to delete" + str(self.curPiece))
+            self.pieces.pop(self.curPiece)
+            print("Going to add" + str((row,col)) + " - " + name)
+            self.pieces[(row,col)] = name
+            self.canvas.delete(name)
+            if "white" in name:
+                self.add_piece(name, self.white, row, col)
+            else:
+                self.add_piece(name, self.black, row, col)
 
-      # self.add_piece("player", self.white, row, col)
-      print(self.pieces)
+            self.curPiece = None
+
+
+        # self.add_piece("player", self.white, row, col)
+        print(self.pieces)
       
 
 
