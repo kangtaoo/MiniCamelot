@@ -4,9 +4,6 @@ from PIL import Image, ImageTk
 
 
 class GameBoard(tk.Frame):
-
-    
-
     def __init__(self, parent, rows=14, columns=8, size=56, color="white"):
         '''size is the size of a square, in pixels'''
 
@@ -146,18 +143,22 @@ class GameBoard(tk.Frame):
 
         # self.add_piece("player", self.white, row, col)
         print(self.pieces)
-      
-
-
-# image comes from the silk icon set which is under a Creative Commons
-# license. For more information see http://www.famfamfam.com/lab/icons/silk/
 
 
 if __name__ == "__main__":
+    items = {'w':'white','b':'black'}
+    while True:
+        Choose_Item = input("Please choice the color you like:\n<w for white>\n<b for black>\n<q for quit>\n").lower()
+        if Choose_Item == "w" or Choose_Item == "b":
+            print("your choice is: " + items[Choose_Item])
+            break
+        elif Choose_Item == "q":
+            print("See you...")
+            exit()
+
+
     root = tk.Tk()
     board = GameBoard(root)
     board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
 
     root.mainloop()
-
-    print("in if")
