@@ -75,9 +75,6 @@ class GameBoard(tk.Frame):
         # will record piece name that can be recongnized by canvas
         self.curPiece = None
 
-
-        print("in __init__")
-
         # this binding will cause a refresh if the user interactively
         # changes the window size
         self.canvas.bind("<Configure>", self.refresh)
@@ -184,6 +181,10 @@ class GameBoard(tk.Frame):
 
     # whether it's a plain move
     def isPlainMove(self, prePos, curPos):
+        # boundary check
+        if curPos in self.blackBlocks:
+            return False
+        # jump distance check
         if abs(prePos[0]-curPos[0])*abs(prePos[1]-curPos[1]) == 1:
             return True
         elif abs(prePos[0]-curPos[0]) == 1 and prePos[1] == curPos[1]:
@@ -195,6 +196,10 @@ class GameBoard(tk.Frame):
 
     # whether it's a jump move which will make a jump of distance 2
     def isJumpMove(self, prePos, curPos):
+        # boundary check
+        if curPos in self.blackBlocks:
+            return False
+        # jump distance check
         if abs(prePos[0]-curPos[0]) == 2 and abs(prePos[1]-curPos[1]) == 2:
             return True
         elif abs(prePos[0]-curPos[0]) == 2 and prePos[1] == curPos[1]:
@@ -213,6 +218,7 @@ class GameBoard(tk.Frame):
     def isCapturingMove(self, prePos, curPos):
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.AIPieces and self.isJumpMove(prePos, curPos)
+
 
 if __name__ == "__main__":
     items = {'w':'white','b':'black'}
