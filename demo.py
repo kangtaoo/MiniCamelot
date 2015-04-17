@@ -4,15 +4,22 @@ from PIL import Image, ImageTk
 
 
 class GameBoard(tk.Frame):
-    def __init__(self, parent, rows=14, columns=8, size=56, color="white"):
+    def __init__(self, parent, userPieceColor, rows=14, columns=8, size=56, color="white"):
         '''size is the size of a square, in pixels'''
 
         self.rows = rows
         self.columns = columns
         self.size = size
         self.color = color
+        self.userPieceColor = userPieceColor
         self.whitePieces = {}
         self.blackPieces = {}
+        self.currentRound = 'white'
+
+        #Set user and AI piece according to color user choosen
+        self.userPieces = self.whitePieces if userPieceColor == 'white' else self.blackPieces
+        self.AIPieces = self.whitePieces if userPieceColor == 'black' else self.blackPieces
+
         ''' blackBlocks contains all squares that should be marked as black''' 
         black_list = [
                       (0,0),(0,0),(0,1),(0,2),(0,5),(0,6),(0,7)
@@ -25,8 +32,15 @@ class GameBoard(tk.Frame):
         self.blackBlocks = set(black_list)
 
         ''' castle's contains all squares that should be marked as castles'''
-        castle_list = [(0,3),(0,4),(13,3),(13,4)]
-        self.castles = set(castle_list)
+        white_castle_list = [(0,3),(0,4)]
+        black_castle_list = [(13,3),(13,4)]
+
+        self.white_castles = set(white_castle_list)
+        self.black_castles = set(black_castle_list)
+        #set user and AI castles according to color user choosen
+        self.user_castles = self.white_castles if userPieceColor == 'white' else self.black_castles
+        self.AI_castles = self.white_castles if userPieceColor == 'black' else self.black_castles
+
 
         canvas_width = columns * size
         canvas_height = rows * size
@@ -39,6 +53,10 @@ class GameBoard(tk.Frame):
 
         self.white = tk.PhotoImage(file="white.gif")
         self.black = tk.PhotoImage(file="black.gif")
+
+        #Set user and AI piece image according to color user choosen
+        self.userPiece = self.white if userPieceColor == 'white' else self.black
+        self.AIPiece = self.white if userPieceColor == 'black' else self.black
 
         self.add_piece("white_1", self.white, 4,2)
         self.add_piece("white_2", self.white, 4,3)
@@ -92,7 +110,6 @@ class GameBoard(tk.Frame):
         self.canvas.delete("square")
         color = self.color
         for row in range(self.rows):
-            # color = self.color1 if color == self.color2 else self.color2
             for col in range(self.columns):
                 x1 = (col * self.size)
                 y1 = (row * self.size)
@@ -100,11 +117,10 @@ class GameBoard(tk.Frame):
                 y2 = y1 + self.size
                 if self.blackBlocks.__contains__((row,col)):
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="black", tags="square")
-                elif self.castles.__contains__((row,col)):
+                elif self.white_castles.__contains__((row,col)) or self.black_castles.__contains__((row,col)):
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="gray", tags="square")
                 else:
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
-                # color = self.color1 if color == self.color2 else self.color2
         for position in self.whitePieces:
             self.place_piece(self.whitePieces[position], position[0], position[1])
         for position in self.blackPieces:
@@ -115,40 +131,93 @@ class GameBoard(tk.Frame):
         # print("refreshed")
 
     def onClick(self, event):
+        if(self.currentRound != self.userPieceColor):
+            print("return round: " + self.currentRound)
+            print("user color: " + self.userPieceColor)
+            return
+
         col = int(event.x/self.size)
         row = int(event.y/self.size)
         print("position: " + str(row) + " " + str(col))
 
-        # click on piece
-        if (row,col) in self.legalPiece:
+        # click on user piece
+        if (row,col) in self.userPieces:
             self.curPiece = (row,col)
-            print("currentlly selected pieces: " + str((row,col)) + " " + self.pieces[(row,col)])
+            print("currentlly selected pieces: " + str((row,col)) + " " + self.userPieces[(row,col)])
             print("Selected piece: " + str(self.curPiece))
 
-        # click on non-piece block
+        # click on non-piece block to indicate that user whant to move piece to this chess board block
         elif self.curPiece is not None:
-            name = self.pieces[self.curPiece]
-            print("Going to delete" + str(self.curPiece))
-            self.pieces.pop(self.curPiece)
-            print("Going to add" + str((row,col)) + " - " + name)
-            self.pieces[(row,col)] = name
-            self.canvas.delete(name)
-            if "white" in name:
-                self.add_piece(name, self.white, row, col)
-            else:
-                self.add_piece(name, self.black, row, col)
+            # make a plain move or cantering move
+            if self.isPlainMove(self.curPiece, (row, col)) or self.isCanteringMove(self.curPiece, (row, col)):
+                curretPieceName = self.userPieces[self.curPiece]
+                # move select piece to current position
+                self.userPieces.pop(self.curPiece)
+                self.userPieces[(row,col)] = curretPieceName
+                self.canvas.delete(curretPieceName)
+                self.add_piece(curretPieceName, self.userPiece, row, col)
+                self.curPiece = (row,col)
 
-            self.curPiece = None
+            # make a capturing move
+            if self.isCapturingMove(self.curPiece, (row, col)):
+                curretPieceName = self.userPieces[self.curPiece]
+
+                pieceToDelete = (int((self.curPiece[0]+row)/2), int((self.curPiece[1]+col)/2))
+                # remove AI piece from backend
+                pieceToDeleteName = self.AIPieces[pieceToDelete]
+                self.AIPieces.pop(pieceToDelete)
+                # remove AI piece from front end
+                self.canvas.delete(pieceToDeleteName)
+
+                # move select piece to current position
+                self.userPieces.pop(self.curPiece)
+                self.userPieces[(row,col)] = curretPieceName
+                self.canvas.delete(curretPieceName)
+                self.add_piece(curretPieceName, self.userPiece, row, col)
+
+                self.curPiece = (row,col)
+                        
 
 
         # self.add_piece("player", self.white, row, col)
-        print(self.pieces)
+        # print(self.pieces)
 
+    # whether it's a plain move
+    def isPlainMove(self, prePos, curPos):
+        if abs(prePos[0]-curPos[0])*abs(prePos[1]-curPos[1]) == 1:
+            return True
+        elif abs(prePos[0]-curPos[0]) == 1 and prePos[1] == curPos[1]:
+            return True
+        elif abs(prePos[1]-curPos[1]) == 1 and prePos[0] == curPos[0]:
+            return True
+        else:
+            return False
+
+    # whether it's a jump move which will make a jump of distance 2
+    def isJumpMove(self, prePos, curPos):
+        if abs(prePos[0]-curPos[0]) == 2 and abs(prePos[1]-curPos[1]) == 2:
+            return True
+        elif abs(prePos[0]-curPos[0]) == 2 and prePos[1] == curPos[1]:
+            return True
+        elif abs(prePos[1]-curPos[1]) == 2 and prePos[0] == curPos[0]:
+            return True
+        else:
+            return False
+
+    # whether it's a cantering move
+    def isCanteringMove(self, prePos, curPos):
+        midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
+        return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.userPieces and self.isJumpMove(prePos, curPos)
+
+    # whether it's a capturing move
+    def isCapturingMove(self, prePos, curPos):
+        midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
+        return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.AIPieces and self.isJumpMove(prePos, curPos)
 
 if __name__ == "__main__":
     items = {'w':'white','b':'black'}
     while True:
-        Choose_Item = input("Please choice the color you like:\n<w for white>\n<b for black>\n<q for quit>\n").lower()
+        Choose_Item = input("Please choice the color you like:\n['w' for white]\n['b' for black]\n['q' for quit]\n").lower()
         if Choose_Item == "w" or Choose_Item == "b":
             print("your choice is: " + items[Choose_Item])
             break
@@ -156,9 +225,8 @@ if __name__ == "__main__":
             print("See you...")
             exit()
 
-
     root = tk.Tk()
-    board = GameBoard(root)
+    board = GameBoard(root, items[Choose_Item])
     board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
 
     root.mainloop()
