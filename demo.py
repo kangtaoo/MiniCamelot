@@ -173,9 +173,10 @@ class GameBoard(tk.Frame):
                 self.add_piece(curretPieceName, self.userPiece, row, col)
 
                 self.curPiece = (row,col)
+
+            if self.isUserWin():
+                print ("Congratulation, you win!!!!!")
                         
-
-
         # self.add_piece("player", self.white, row, col)
         # print(self.pieces)
 
@@ -219,6 +220,56 @@ class GameBoard(tk.Frame):
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.AIPieces and self.isJumpMove(prePos, curPos)
 
+    # determine whether there is a winer
+    def TerminalTest(self):
+        return self.isUserWin or self.isAIWin
+
+    # whether user wins
+    def isUserWin(self):
+        # all AI pieces are removed
+        if not self.AIPieces:
+            return True
+        # AI castle is occupied
+        for castle in self.AI_castles:
+            if castle in userPieces:
+                return True
+        return False
+
+    # whether AI wins
+    def isAIWin(self):
+        # all user pieces are removed
+        if self.userPieces == {}:
+            return True
+        # User castle is occupied
+        for castle in self.user_castles:
+            if castle in self.AIPieces:
+                return True
+        return False
+
+    # def AlphaBetaSearch(self):
+    #     # the alpha beta algorithm
+
+
+    # def actions(self):
+    #     # return all actions in current state
+
+    # def MAX_VALUE(self):
+    #     # will be called by AlphaBetaSearch
+
+    # def MIN_VALUE(self):
+    #     # will be called by AlphaBetaSearch
+
+    # def EVAL(self):
+    #     # the evaluation function that will return a evaluaion value according to currrent state
+
+    def UTILITY(self):
+        # return utility value according to current state
+        if self.isUserWin():
+            return -1000
+
+        if self.isAIWin():
+            return 1000
+
 
 if __name__ == "__main__":
     items = {'w':'white','b':'black'}
@@ -233,6 +284,6 @@ if __name__ == "__main__":
 
     root = tk.Tk()
     board = GameBoard(root, items[Choose_Item])
-    board.pack(side="top", fill="both", expand="true", padx=4, pady=4)
+    board.pack(side="top", fill="both", expand="True", padx=4, pady=4)
 
     root.mainloop()
