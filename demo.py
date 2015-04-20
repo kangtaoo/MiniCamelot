@@ -16,6 +16,8 @@ class GameBoard(tk.Frame):
         self.blackPieces = {}
         self.currentRound = 'white'
 
+        self.CUT_OFF_LEVEL = 3
+
         #represent the min utility value
         self.MIN_UTILITY = -10000000
         # represent the max utility value
@@ -29,7 +31,7 @@ class GameBoard(tk.Frame):
         self.AIPieces = self.whitePieces if userPieceColor == 'black' else self.blackPieces
 
         ''' blackBlocks contains all squares that should be marked as black''' 
-        black_list = [
+        self.blackBlocks = [
                       (0,0),(0,0),(0,1),(0,2),(0,5),(0,6),(0,7)
                       ,(1,0),(1,1),(1,6),(1,7)
                       ,(2,0),(2,7)
@@ -37,14 +39,14 @@ class GameBoard(tk.Frame):
                       ,(12,0),(12,1),(12,6),(12,7)
                       ,(13,0),(13,1),(13,2),(13,5),(13,6),(13,7)
                       ]
-        self.blackBlocks = set(black_list)
+        # self.blackBlocks = set(black_list)
 
         ''' castle's contains all squares that should be marked as castles'''
-        white_castle_list = [(0,3),(0,4)]
-        black_castle_list = [(13,3),(13,4)]
+        self.white_castles = [(0,3),(0,4)]
+        self.black_castles = [(13,3),(13,4)]
 
-        self.white_castles = set(white_castle_list)
-        self.black_castles = set(black_castle_list)
+        # self.white_castles = set(white_castle_list)
+        # self.black_castles = set(black_castle_list)
         #set user and AI castles according to color user choosen
         self.user_castles = self.white_castles if userPieceColor == 'white' else self.black_castles
         self.AI_castles = self.white_castles if userPieceColor == 'black' else self.black_castles
@@ -161,6 +163,8 @@ class GameBoard(tk.Frame):
             if self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
                 self.performAction(self.ROLE_USER, self.curPiece, (row, col))
                 self.curPiece = (row,col)
+
+            print(self.EVAL())
 
             if self.isUserWin():
                 print ("Congratulation, you win!!!!!")
@@ -356,10 +360,14 @@ class GameBoard(tk.Frame):
 
 
     # # will be called by AlphaBetaSearch
-    # def MAX_VALUE(self):
+    # def MAX_VALUE(self, depth):
     #     if self.TerminalTest():
     #         return self.UTILITY()
+    #     if depth == self.CUT_OFF_LEVEL
+    #         return self.EVAL()
     #     value = self.MIN_UTILITY
+    #     for action in self.ACTIONS(self.ROLE_AI):
+            
 
         
 
@@ -372,7 +380,14 @@ class GameBoard(tk.Frame):
         result += len(self.AIPieces)*50
         result -= len(self.userPieces)*50
 
-        
+        for piece in self.AIPieces:
+            result += 5*abs(piece[0] - self.user_castles[0][0])
+
+        for piece in self.userPieces:
+            result -= 5*abs(piece[0] - self.AI_castles[0][0])
+
+        return result
+
     def UTILITY(self):
         # return utility value according to current state
         if self.isUserWin():
