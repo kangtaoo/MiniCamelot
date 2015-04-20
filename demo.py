@@ -16,6 +16,14 @@ class GameBoard(tk.Frame):
         self.blackPieces = {}
         self.currentRound = 'white'
 
+        #represent the min utility value
+        self.MIN_UTILITY = -10000000
+        # represent the max utility value
+        self.MAX_UITLITY = 10000000
+
+        self.ROLE_USER = 'user'
+        self.ROLE_AI = 'AI'
+
         #Set user and AI piece according to color user choosen
         self.userPieces = self.whitePieces if userPieceColor == 'white' else self.blackPieces
         self.AIPieces = self.whitePieces if userPieceColor == 'black' else self.blackPieces
@@ -146,7 +154,7 @@ class GameBoard(tk.Frame):
         # click on non-piece block to indicate that user whant to move piece to this chess board block
         elif self.curPiece is not None:
             # make a plain move or cantering move
-            if self.isPlainMove(self.curPiece, (row, col)) or self.isCanteringMove(self.curPiece, (row, col)):
+            if self.isPlainMove(self.curPiece, (row, col)) or self.isCanteringMove(self.ROLE_USER, self.curPiece, (row, col)):
                 curretPieceName = self.userPieces[self.curPiece]
                 # move select piece to current position
                 self.userPieces.pop(self.curPiece)
@@ -156,7 +164,7 @@ class GameBoard(tk.Frame):
                 self.curPiece = (row,col)
 
             # make a capturing move
-            if self.isCapturingMove(self.curPiece, (row, col)):
+            if self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
                 curretPieceName = self.userPieces[self.curPiece]
 
                 pieceToDelete = (int((self.curPiece[0]+row)/2), int((self.curPiece[1]+col)/2))
@@ -183,7 +191,7 @@ class GameBoard(tk.Frame):
     # whether it's a plain move
     def isPlainMove(self, prePos, curPos):
         # boundary check
-        if curPos in self.blackBlocks:
+        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in AIPieces:
             return False
         # jump distance check
         if abs(prePos[0]-curPos[0])*abs(prePos[1]-curPos[1]) == 1:
@@ -211,18 +219,28 @@ class GameBoard(tk.Frame):
             return False
 
     # whether it's a cantering move
-    def isCanteringMove(self, prePos, curPos):
+    def isCanteringMove(self, role, prePos, curPos):
+        if curPos in self.blackBlocks:
+            return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
-        return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.userPieces and self.isJumpMove(prePos, curPos)
+        if role == self.ROLE_USER:
+            return midPiece in self.userPieces and self.isJumpMove(prePos, curPos)
+        else:
+            return midPiece in self.AIPieces and self.isJumpMove(prePos, curPos)
 
     # whether it's a capturing move
-    def isCapturingMove(self, prePos, curPos):
+    def isCapturingMove(self, role, prePos, curPos):
+        if curPos in self.blackBlocks:
+            return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
-        return (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2)) in self.AIPieces and self.isJumpMove(prePos, curPos)
+        if role == self.ROLE_USER:
+            return midPiece in self.AIPieces and self.isJumpMove(prePos, curPos)
+        else:
+            return midPiece in self.userPieces and self.isJumpMove(prePos, curPos)
 
     # determine whether there is a winer
     def TerminalTest(self):
-        return self.isUserWin or self.isAIWin
+        return self.isUserWin() or self.isAIWin()
 
     # whether user wins
     def isUserWin(self):
@@ -231,7 +249,7 @@ class GameBoard(tk.Frame):
             return True
         # AI castle is occupied
         for castle in self.AI_castles:
-            if castle in userPieces:
+            if castle in self.userPieces:
                 return True
         return False
 
@@ -246,15 +264,24 @@ class GameBoard(tk.Frame):
                 return True
         return False
 
-    # def AlphaBetaSearch(self):
-    #     # the alpha beta algorithm
+    # the algorithm that will evaluate different moves and return the best next action
+    def AlphaBetaSearch(self):
+        # the alpha beta algorithm
+        action = MAX_VALUE(self, self.MIN_UTILITY, self.MAX_UITLITY)
+        return action[1]
 
+    # Will return all actions in current statement
+    def ACTIONS(self, role):
+        if role == 'user':
+            for 
 
-    # def actions(self):
-    #     # return all actions in current state
-
+    # # will be called by AlphaBetaSearch
     # def MAX_VALUE(self):
-    #     # will be called by AlphaBetaSearch
+    #     if self.TerminalTest():
+    #         return self.UTILITY()
+    #     value = self.MIN_UTILITY
+
+        
 
     # def MIN_VALUE(self):
     #     # will be called by AlphaBetaSearch
