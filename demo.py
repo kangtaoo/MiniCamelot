@@ -182,6 +182,9 @@ class GameBoard(tk.Frame):
 
                 self.curPiece = (row,col)
 
+            print (self.ACTIONS(self.ROLE_AI))
+            print (len(self.ACTIONS(self.ROLE_AI)))
+
             if self.isUserWin():
                 print ("Congratulation, you win!!!!!")
                         
@@ -191,7 +194,7 @@ class GameBoard(tk.Frame):
     # whether it's a plain move
     def isPlainMove(self, prePos, curPos):
         # boundary check
-        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in AIPieces:
+        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
             return False
         # jump distance check
         if abs(prePos[0]-curPos[0])*abs(prePos[1]-curPos[1]) == 1:
@@ -220,7 +223,7 @@ class GameBoard(tk.Frame):
 
     # whether it's a cantering move
     def isCanteringMove(self, role, prePos, curPos):
-        if curPos in self.blackBlocks:
+        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
             return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         if role == self.ROLE_USER:
@@ -230,7 +233,7 @@ class GameBoard(tk.Frame):
 
     # whether it's a capturing move
     def isCapturingMove(self, role, prePos, curPos):
-        if curPos in self.blackBlocks:
+        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
             return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         if role == self.ROLE_USER:
@@ -270,10 +273,78 @@ class GameBoard(tk.Frame):
         action = MAX_VALUE(self, self.MIN_UTILITY, self.MAX_UITLITY)
         return action[1]
 
+    # This function will perform action on 
+    # def performAction(self, role, prePosition, newPosition):
+    #     if 
+
     # Will return all actions in current statement
     def ACTIONS(self, role):
-        if role == 'user':
-            for 
+        actions = []
+        if role == self.ROLE_USER:
+            pieces = self.userPieces
+        else:
+            pieces = self.AIPieces
+
+        for piece in pieces:
+            # move up
+            if self.isPlainMove(piece, (piece[0]-1, piece[1])):
+                actions.append((piece, (piece[0]-1, piece[1])))
+            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1])) or\
+                self.isCanteringMove(role, piece, (piece[0]-2, piece[1])):
+                actions.append((piece, (piece[0]-2, piece[1])))
+
+            # move to northeast degree
+            if self.isPlainMove(piece, (piece[0]-1, piece[1]+1)):
+                actions.append((piece, (piece[0]-1, piece[1]+1)))
+            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1]+2)) or\
+                self.isCanteringMove(role, piece, (piece[0]-2, piece[1]+2)):
+                actions.append((piece, (piece[0]-2, piece[1]+2)))
+
+            # move to right
+            if self.isPlainMove(piece, (piece[0], piece[1]+1)):
+                actions.append((piece, (piece[0], piece[1]+1)))
+            elif self.isCapturingMove(role, piece, (piece[0], piece[1]+2)) or\
+                self.isCanteringMove(role, piece, (piece[0], piece[1]+2)):
+                actions.append((piece, (piece[0], piece[1]+2)))
+
+            # move to sourtheast degree
+            if self.isPlainMove(piece, (piece[0]+1, piece[1]+1)):
+                actions.append((piece, (piece[0]+1, piece[1]+1)))
+            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1]+2)) or\
+                self.isCanteringMove(role, piece, (piece[0]+2, piece[1]+2)):
+                actions.append((piece, (piece[0]+2, piece[1]+2)))
+
+            # move down
+            if self.isPlainMove(piece, (piece[0]+1, piece[1])):
+                actions.append((piece, (piece[0]+1, piece[1])))
+            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1])) or\
+                self.isCanteringMove(role, piece, (piece[0]+2, piece[1])):
+                actions.append((piece, (piece[0]+2, piece[1])))
+
+            # move sourthwest
+            if self.isPlainMove(piece, (piece[0]+1, piece[1]-1)):
+                actions.append((piece, (piece[0]+1, piece[1]-1)))
+            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1]-2)) or\
+                self.isCanteringMove(role, piece, (piece[0]+2, piece[1]-2)):
+                actions.append((piece, (piece[0]+2, piece[1]-2)))
+
+            # move left
+            if self.isPlainMove(piece, (piece[0], piece[1]-1)):
+                actions.append((piece, (piece[0], piece[1]-1)))
+            elif self.isCapturingMove(role, piece, (piece[0], piece[1]-2)) or\
+                self.isCanteringMove(role, piece, (piece[0], piece[1]-2)):
+                actions.append((piece, (piece[0], piece[1]-2)))
+
+            # move northwest
+            if self.isPlainMove(piece, (piece[0]-1, piece[1]-1)):
+                actions.append((piece, (piece[0]-1, piece[1]-1)))
+            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1]-2)) or\
+                self.isCanteringMove(role, piece, (piece[0]-2, piece[1]-2)):
+                actions.append((piece, (piece[0]-2, piece[1]-2)))
+
+        return actions
+
+
 
     # # will be called by AlphaBetaSearch
     # def MAX_VALUE(self):
