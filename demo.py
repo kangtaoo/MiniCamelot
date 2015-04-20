@@ -143,7 +143,6 @@ class GameBoard(tk.Frame):
 
         col = int(event.x/self.size)
         row = int(event.y/self.size)
-        print("position: " + str(row) + " " + str(col))
 
         # click on user piece
         if (row,col) in self.userPieces:
@@ -155,41 +154,55 @@ class GameBoard(tk.Frame):
         elif self.curPiece is not None:
             # make a plain move or cantering move
             if self.isPlainMove(self.curPiece, (row, col)) or self.isCanteringMove(self.ROLE_USER, self.curPiece, (row, col)):
-                curretPieceName = self.userPieces[self.curPiece]
-                # move select piece to current position
-                self.userPieces.pop(self.curPiece)
-                self.userPieces[(row,col)] = curretPieceName
-                self.canvas.delete(curretPieceName)
-                self.add_piece(curretPieceName, self.userPiece, row, col)
+                self.performAction(self.ROLE_USER, self.curPiece, (row, col))
                 self.curPiece = (row,col)
 
             # make a capturing move
             if self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
-                curretPieceName = self.userPieces[self.curPiece]
-
-                pieceToDelete = (int((self.curPiece[0]+row)/2), int((self.curPiece[1]+col)/2))
-                # remove AI piece from backend
-                pieceToDeleteName = self.AIPieces[pieceToDelete]
-                self.AIPieces.pop(pieceToDelete)
-                # remove AI piece from front end
-                self.canvas.delete(pieceToDeleteName)
-
-                # move select piece to current position
-                self.userPieces.pop(self.curPiece)
-                self.userPieces[(row,col)] = curretPieceName
-                self.canvas.delete(curretPieceName)
-                self.add_piece(curretPieceName, self.userPiece, row, col)
-
+                self.performAction(self.ROLE_USER, self.curPiece, (row, col))
                 self.curPiece = (row,col)
-
-            print (self.ACTIONS(self.ROLE_AI))
-            print (len(self.ACTIONS(self.ROLE_AI)))
 
             if self.isUserWin():
                 print ("Congratulation, you win!!!!!")
-                        
-        # self.add_piece("player", self.white, row, col)
-        # print(self.pieces)
+
+    # This function will perform action as given role
+    def performAction(self, role, curPosition, newPosition):
+        if self.isPlainMove(curPosition, newPosition) or\
+            self.isCanteringMove(role, curPosition, newPosition):
+            # refer to current player's pieces
+            pieces = self.userPieces if role == self.ROLE_USER else self.AIPieces
+            curretPieceName = pieces[curPosition]
+            # move select piece to current position
+            pieces.pop(curPosition)
+            pieces[newPosition] = curretPieceName
+            self.canvas.delete(curretPieceName)
+            # remove old piece from front end
+            piece = self.userPiece if role == self.ROLE_USER else self.AIPiece
+            # add new piece
+            self.add_piece(curretPieceName, piece, newPosition[0], newPosition[1])
+
+        if self.isCapturingMove(role, curPosition, newPosition):
+            # refer to current player's pieces
+            pieces = self.userPieces if role == self.ROLE_USER else self.AIPieces
+            # refer to counter player's pieces, to be removed
+            counterPieces = self.AIPieces if role == self.ROLE_USER else self.userPieces
+            curretPieceName = pieces[curPosition]
+
+            pieceToDelete = (int((curPosition[0]+newPosition[0])/2), int((curPosition[1]+newPosition[1])/2))
+            # remove counter player's piece from backend
+            pieceToDeleteName = counterPieces[pieceToDelete]
+            counterPieces.pop(pieceToDelete)
+            # remove counter player's piece from front end
+            self.canvas.delete(pieceToDeleteName)
+            # move select piece to current position
+            pieces.pop(curPosition)
+            pieces[newPosition] = curretPieceName
+            # remove old piece from front end
+            self.canvas.delete(curretPieceName)
+            piece = self.userPiece if role == self.ROLE_USER else self.AIPiece
+            # add new piece
+            self.add_piece(curretPieceName, piece, newPosition[0], newPosition[1])
+
 
     # whether it's a plain move
     def isPlainMove(self, prePos, curPos):
@@ -273,10 +286,6 @@ class GameBoard(tk.Frame):
         action = MAX_VALUE(self, self.MIN_UTILITY, self.MAX_UITLITY)
         return action[1]
 
-    # This function will perform action on 
-    # def performAction(self, role, prePosition, newPosition):
-    #     if 
-
     # Will return all actions in current statement
     def ACTIONS(self, role):
         actions = []
@@ -357,9 +366,13 @@ class GameBoard(tk.Frame):
     # def MIN_VALUE(self):
     #     # will be called by AlphaBetaSearch
 
-    # def EVAL(self):
-    #     # the evaluation function that will return a evaluaion value according to currrent state
+    # the evaluation function that will return a evaluaion value according to currrent state
+    def EVAL(self):
+        result = 0
+        result += len(self.AIPieces)*50
+        result -= len(self.userPieces)*50
 
+        
     def UTILITY(self):
         # return utility value according to current state
         if self.isUserWin():
