@@ -90,6 +90,9 @@ class GameBoard(tk.Frame):
         self.canvas.bind("<Configure>", self.refresh)
         self.canvas.bind("<Button-1>", self.onClick)
 
+        if self.currentRound != self.userPieceColor:
+            self.AIAction()
+
     def add_piece(self, name, image, row=0, column=0):
         '''Add a piece to the playing board'''
         self.canvas.create_image(0,0, image=image, tags=(name, "piece"), anchor="c")
@@ -97,8 +100,8 @@ class GameBoard(tk.Frame):
 
         # print("in addpiece")
 
+    # Place a piece at the given row/column
     def place_piece(self, name, row, column):
-        '''Place a piece at the given row/column'''
         if "white" in name:
             self.whitePieces[(row,column)] = name
         if "black" in name:
@@ -107,39 +110,51 @@ class GameBoard(tk.Frame):
         y0 = (row * self.size) + int(self.size/2)
         self.canvas.coords(name, x0, y0)
 
-        # print("in placepiece")
-
+    # Redraw the board, possibly in response to window being resized
     def refresh(self, event):
-        '''Redraw the board, possibly in response to window being resized'''
         xsize = int((event.width-1) / self.columns)
         ysize = int((event.height-1) / self.rows)
         self.size = min(xsize, ysize)
         self.canvas.delete("square")
         color = self.color
+
+        # draw the chess board
         for row in range(self.rows):
             for col in range(self.columns):
                 x1 = (col * self.size)
                 y1 = (row * self.size)
                 x2 = x1 + self.size
                 y2 = y1 + self.size
+                # draw black blocks
                 if self.blackBlocks.__contains__((row,col)):
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="black", tags="square")
+
+                # draw castles
                 elif self.white_castles.__contains__((row,col)) or self.black_castles.__contains__((row,col)):
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill="gray", tags="square")
+
+                # draw other square
                 else:
                     self.canvas.create_rectangle(x1, y1, x2, y2, outline="black", fill=color, tags="square")
+
+        # add all white pieces
         for position in self.whitePieces:
             self.place_piece(self.whitePieces[position], position[0], position[1])
+
+        # add all black pieces
         for position in self.blackPieces:
             self.place_piece(self.blackPieces[position], position[0], position[1])
+
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
-        # print("refreshed")
-
     def onClick(self, event):
+        
+        print("current round: " + str(self.currentRound))
+        print("user color: " + self.userPieceColor)
+
         if(self.currentRound != self.userPieceColor):
-            print("return round: " + self.currentRound)
+            print("return round: " + str(self.currentRound))
             print("user color: " + self.userPieceColor)
             return
 
@@ -165,11 +180,18 @@ class GameBoard(tk.Frame):
                 self.curPiece = (row,col)
 
             if self.isUserWin():
-                print ("Congratulation, you win!!!!!")
+                self.gameFinished(self.ROLE_USER)
+            else:
+                self.rotation()
+                self.AIAction()
 
-            #
-            self.rotation()
-            self.AIAction()
+    def gameFinished(self, role):
+        self.currentRound = None
+
+        if role == self.ROLE_USER:
+            print("Congratulation, you win !!!")
+        else:
+            print("You lose...")
 
     # This function will perform action as given role
     def performAction(self, role, curPosition, newPosition):
@@ -237,12 +259,17 @@ class GameBoard(tk.Frame):
             pieces.pop(curPosition)
             pieces[newPosition] = curretPieceName
            
-
+    def isOutOfBound(self, position):
+        if position[0] < 0 or position[0] > 13 or position[1] < 0 or position[1] > 7:
+            return True
+        else:
+            return False
 
     # whether it's a plain move
     def isPlainMove(self, prePos, curPos):
         # boundary check
-        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
+        if curPos in self.blackBlocks or curPos in self.userPieces or \
+            curPos in self.AIPieces or self.isOutOfBound(curPos):
             return False
         # jump distance check
         if abs(prePos[0]-curPos[0])*abs(prePos[1]-curPos[1]) == 1:
@@ -257,7 +284,8 @@ class GameBoard(tk.Frame):
     # whether it's a jump move which will make a jump of distance 2
     def isJumpMove(self, prePos, curPos):
         # boundary check
-        if curPos in self.blackBlocks:
+        if curPos in self.blackBlocks or curPos in self.userPieces or \
+            curPos in self.AIPieces or self.isOutOfBound(curPos):
             return False
         # jump distance check
         if abs(prePos[0]-curPos[0]) == 2 and abs(prePos[1]-curPos[1]) == 2:
@@ -271,7 +299,8 @@ class GameBoard(tk.Frame):
 
     # whether it's a cantering move
     def isCanteringMove(self, role, prePos, curPos):
-        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
+        if curPos in self.blackBlocks or curPos in self.userPieces or\
+             curPos in self.AIPieces or self.isOutOfBound(curPos):
             return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         if role == self.ROLE_USER:
@@ -281,7 +310,8 @@ class GameBoard(tk.Frame):
 
     # whether it's a capturing move
     def isCapturingMove(self, role, prePos, curPos):
-        if curPos in self.blackBlocks or curPos in self.userPieces or curPos in self.AIPieces:
+        if curPos in self.blackBlocks or curPos in self.userPieces or \
+            curPos in self.AIPieces or self.isOutOfBound(curPos):
             return False
         midPiece = (int((prePos[0]+curPos[0])/2), int((prePos[1]+curPos[1])/2))
         if role == self.ROLE_USER:
@@ -320,11 +350,17 @@ class GameBoard(tk.Frame):
         self.currentRound = 'white' if self.currentRound == 'black' else 'black'
 
     def AIAction(self):
+        # Get action via alpha beta search
         action = self.AlphaBetaSearch()
+
+        # perform action
         self.performAction(self.ROLE_AI, action[0], action[1])
-        # print(action)
-        # change current round back to user
-        self.rotation()
+
+        if self.isAIWin():
+            self.gameFinished(self.ROLE_AI)
+        else:
+             # change current round back to user
+            self.rotation()
 
     # Will return all actions in current statement
     def ACTIONS(self, role):
@@ -442,6 +478,7 @@ class GameBoard(tk.Frame):
             if tmp[0] > result[0]:
                 result = (tmp[0], action)
 
+            # where pruning happened in MAX_VALUE
             if result[0] > beta:
                 return result
 
@@ -474,7 +511,7 @@ class GameBoard(tk.Frame):
             # use simulate action to perform action in back end, not refresh front end
             self.simulateAction(self.ROLE_USER, action[0], action[1])
 
-             # restore previous state
+            # restore previous state
             self.userPieces = archivedUserPieces.copy()
             self.AIPieces = archivedAIPieces.copy()
 
@@ -482,6 +519,7 @@ class GameBoard(tk.Frame):
             if tmp[0] < result[0]:
                 result = (tmp[0], action)
 
+            # where pruning happened in MIN_VALUE
             if result[0] < alpha:
                 return result
 
