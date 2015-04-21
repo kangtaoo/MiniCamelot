@@ -90,9 +90,6 @@ class GameBoard(tk.Frame):
         self.canvas.bind("<Configure>", self.refresh)
         self.canvas.bind("<Button-1>", self.onClick)
 
-        if self.currentRound != self.userPieceColor:
-            self.AIAction()
-
     def add_piece(self, name, image, row=0, column=0):
         '''Add a piece to the playing board'''
         self.canvas.create_image(0,0, image=image, tags=(name, "piece"), anchor="c")
@@ -149,13 +146,11 @@ class GameBoard(tk.Frame):
         self.canvas.tag_lower("square")
 
     def onClick(self, event):
-        
-        print("current round: " + str(self.currentRound))
-        print("user color: " + self.userPieceColor)
-
         if(self.currentRound != self.userPieceColor):
             print("return round: " + str(self.currentRound))
             print("user color: " + self.userPieceColor)
+            # This will kick off the game when user choice black
+            self.AIAction()
             return
 
         col = int(event.x/self.size)
@@ -195,6 +190,8 @@ class GameBoard(tk.Frame):
 
     # This function will perform action as given role
     def performAction(self, role, curPosition, newPosition):
+        print("[performAciont] - " + str(curPosition) + " -> " + str(newPosition))
+
         if self.isPlainMove(curPosition, newPosition) or\
             self.isCanteringMove(role, curPosition, newPosition):
             # refer to current player's pieces
@@ -233,7 +230,7 @@ class GameBoard(tk.Frame):
 
     # this function only perform action in back end, do not update front end element
     def simulateAction(self, role, curPosition, newPosition):
-        print("[simulateAction] - role: " + role + " action: " + str(curPosition) + " - " + str(newPosition))
+        # print("[simulateAction] - role: " + role + " action: " + str(curPosition) + " - " + str(newPosition))
 
         if self.isPlainMove(curPosition, newPosition) or\
             self.isCanteringMove(role, curPosition, newPosition):
@@ -353,6 +350,8 @@ class GameBoard(tk.Frame):
         # Get action via alpha beta search
         action = self.AlphaBetaSearch()
 
+        print("[AIAction] - " +  str(action))
+
         # perform action
         self.performAction(self.ROLE_AI, action[0], action[1])
 
@@ -460,7 +459,7 @@ class GameBoard(tk.Frame):
             archivedUserPieces = self.userPieces.copy()
             archivedAIPieces = self.AIPieces.copy()
 
-            print("[MAX_VALUE]: " + str(action))
+            # print("[MAX_VALUE]: " + str(action))
             # use simulate action to perform action in back end, not refresh front end
             self.simulateAction(self.ROLE_AI, action[0], action[1])
 
@@ -506,7 +505,7 @@ class GameBoard(tk.Frame):
             archivedUserPieces = self.userPieces.copy()
             archivedAIPieces = self.AIPieces.copy()
 
-            print("[MIN_VALUE]: " + str(action))
+            # print("[MIN_VALUE]: " + str(action))
 
             # use simulate action to perform action in back end, not refresh front end
             self.simulateAction(self.ROLE_USER, action[0], action[1])
@@ -524,8 +523,6 @@ class GameBoard(tk.Frame):
                 return result
 
             beta = max(beta, result[0])
-
-           
 
         return result
 
