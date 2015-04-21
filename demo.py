@@ -186,7 +186,7 @@ class GameBoard(tk.Frame):
         if role == self.ROLE_USER:
             print("Congratulation, you win !!!")
         else:
-            print("You lose...")
+            print("Sorry, you lose...")
 
     # This function will perform action as given role
     def performAction(self, role, curPosition, newPosition):
@@ -435,24 +435,48 @@ class GameBoard(tk.Frame):
         archivedAIPieces = self.AIPieces.copy()
 
         # the alpha beta algorithm
-        result = self.MAX_VALUE(self.MIN_UTILITY, self.MAX_UITLITY, 0)
+        val, returnAct, dep, totalNodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(self.MIN_UTILITY, self.MAX_UITLITY, 1)
 
         # restore state
         self.userPieces = archivedUserPieces.copy()
         self.AIPieces = archivedAIPieces.copy()
 
-        return result[1]
+        print("[AlphaBetaSearch] - return action: " + str(returnAct))
+        print("[AlphaBetaSearch] - max depth reached: " + str(dep))
+        print("[AlphaBetaSearch] - total node created: " + str(totalNodeNum))
+        print("[AlphaBetaSearch] - pruning times in MAX_VALUE: " + str(prunNumMax))
+        print("[AlphaBetaSearch] - pruning times in MIN_VALUE: " + str(prunNumMin))
 
+        return returnAct
+
+    '''
+    The implementation of MAX_VALUE part in AlphaBetaSearch algorithm
+
+    <Return list>: 
+    [0] utility/estimate value
+    [1] action list
+    [2] max depth
+    [3] total number of created nodes
+    [4] pruning time occured in MAX_VALUE
+    [5] pruning time occured in MIN_VALUE
+    '''  
     # will be called by AlphaBetaSearch
     def MAX_VALUE(self, alpha, beta, depth):
         if self.TerminalTest():
-            return (self.UTILITY(), )
+            return self.UTILITY(), None, 1, 0, 0, 0
         if depth == self.CUT_OFF_LEVEL:
-            return (self.EVAL(), )
+            return self.EVAL(), None, 1, 0, 0, 0
 
         # result will record both the return value and corresponding action
         # only initial it with MIN_UTILITY here
-        result = (self.MIN_UTILITY, )
+
+        totalNodeNum = 0
+        returnAct = None
+        totalPrunNumMax = 0
+        totalPrunNumMin = 0
+        maxDepth = 0
+
+        val = self.MIN_UTILITY
 
         for action in self.ACTIONS(self.ROLE_AI):
             # archive current state
@@ -466,7 +490,7 @@ class GameBoard(tk.Frame):
             # print("[MAX_VALUE]: going to call MIN_VALUE")
 
             # result = max(value, self.MIN_VALUE(alpha, beta, depth+1))
-            tmp = self.MIN_VALUE(alpha, beta, depth+1)
+            tmp, tmpAct, dep, nodeNum, prunNumMax, prunNumMin = self.MIN_VALUE(alpha, beta, depth+1)
             # print("[MAX_VALUE]: return value from MIN_VALUE" + str(tmp))
 
             # print("[MAX_VALUE]# archivedUserPieces: " + str(archivedAIPieces))
@@ -474,31 +498,56 @@ class GameBoard(tk.Frame):
             self.userPieces = archivedUserPieces.copy()
             self.AIPieces = archivedAIPieces.copy()
 
-            if tmp[0] > result[0]:
-                result = (tmp[0], action)
+            if tmp > val:
+                val = tmp
+                returnAct = action
 
+            totalNodeNum += (nodeNum+1)
+            totalPrunNumMax += prunNumMax
+            totalPrunNumMin += prunNumMin
+            maxDepth = max(maxDepth, dep+1)
             # where pruning happened in MAX_VALUE
-            if result[0] > beta:
-                return result
+            # print("[MAX_VALUE] - current val: " + str(val) + " current beta: " + str(beta))
 
-            alpha = max(alpha, result[0])
+            if val >= beta:
+                # print("[MAX_VALUE]: prun in MAX_VALUE")
+                totalPrunNumMax += 1
+                return val, None, maxDepth, totalNodeNum, totalPrunNumMax, totalPrunNumMin
+
+            alpha = max(alpha, val)
 
             
-        return result
+        return val, returnAct, maxDepth, totalNodeNum, totalPrunNumMax, totalPrunNumMin
 
 
-        
+    '''
+    The implementation of MIN_VALUE part in AlphaBetaSearch algorithm
+
+    <Return list>: 
+    [0] utility/estimate value
+    [1] action list
+    [2] max depth
+    [3] total number of created nodes
+    [4] pruning time occured in MAX_VALUE
+    [5] pruning time occured in MIN_VALUE
+    '''  
     # will be called by AlphaBetaSearch
     def MIN_VALUE(self, alpha, beta, depth):
 
         if self.TerminalTest():
-            return (self.UTILITY(), )
+            return self.UTILITY(), None, 1, 0, 0, 0
         if depth == self.CUT_OFF_LEVEL:
-            return (self.EVAL(), )
+            return self.EVAL(), None, 1, 0, 0, 0
 
         # result will record both the return value and corresponding action
         # only initial it with MAX_UTILITY here
-        result = (self.MAX_UITLITY, )
+        val = self.MAX_UITLITY
+
+        totalNodeNum = 0
+        returnAct = None
+        totalPrunNumMin = 0
+        totalPrunNumMax = 0
+        maxDepth= 0
 
         for action in self.ACTIONS(self.ROLE_USER):
             # archive current state
@@ -514,17 +563,30 @@ class GameBoard(tk.Frame):
             self.userPieces = archivedUserPieces.copy()
             self.AIPieces = archivedAIPieces.copy()
 
-            tmp = self.MAX_VALUE(alpha, beta, depth+1)
-            if tmp[0] < result[0]:
-                result = (tmp[0], action)
+            tmp, tmpAct, dep, nodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(alpha, beta, depth+1)
+
+            # keep record of min uitility value as well as corresponding actions
+            if val > tmp:
+                val = tmp
+                returnAct = action
+
+            # count node number that has been created
+            totalNodeNum += (nodeNum+1)
+            totalPrunNumMin += prunNumMin
+            totalPrunNumMax += prunNumMax
+            maxDepth = max(maxDepth, dep+1)
+
+            # print("[MIN_VALUE] - current val: " + str(val) + " current alpha: " + str(alpha))
 
             # where pruning happened in MIN_VALUE
-            if result[0] < alpha:
-                return result
+            if val <= alpha:
+                # print("[MIN_VALUE]: prun in MIN_VALUE")
+                totalPrunNumMin += 1
+                return val, None, maxDepth, totalNodeNum, totalPrunNumMax, totalPrunNumMin
 
-            beta = max(beta, result[0])
+            beta = min(beta, val)
 
-        return result
+        return val, returnAct, maxDepth, totalNodeNum, totalPrunNumMax, totalPrunNumMin
 
 
 
@@ -535,10 +597,16 @@ class GameBoard(tk.Frame):
         result -= len(self.userPieces)*50
 
         for piece in self.AIPieces:
-            result -= 5*abs(piece[0] - self.user_castles[0][0])
+            # make sure AI pieces move towards user castle
+            result -= 10*abs(piece[0] - self.user_castles[0][0])
+            # make sure AI pieces move towards central path
+            result -= 5*abs(piece[1] - 3)
 
         for piece in self.userPieces:
-            result += 5*abs(piece[0] - self.AI_castles[0][0])
+            # make sure AI pieces keep user pieces away from moving towards AI castle
+            result += 10*abs(piece[0] - self.AI_castles[0][0])
+            # make sure AI pieces keep user pieces away from moving towards central path
+            result += 5*abs(piece[1] - 3)
 
         return result
 
