@@ -164,10 +164,12 @@ class GameBoard(tk.Frame):
                 self.performAction(self.ROLE_USER, self.curPiece, (row, col))
                 self.curPiece = (row,col)
 
-            print(self.EVAL())
-
             if self.isUserWin():
                 print ("Congratulation, you win!!!!!")
+
+            #
+            self.rotation()
+            self.AIAction()
 
     # This function will perform action as given role
     def performAction(self, role, curPosition, newPosition):
@@ -206,6 +208,35 @@ class GameBoard(tk.Frame):
             piece = self.userPiece if role == self.ROLE_USER else self.AIPiece
             # add new piece
             self.add_piece(curretPieceName, piece, newPosition[0], newPosition[1])
+
+    # this function only perform action in back end, do not update front end element
+    def simulateAction(self, role, curPosition, newPosition):
+        print("[simulateAction] - role: " + role + " action: " + str(curPosition) + " - " + str(newPosition))
+
+        if self.isPlainMove(curPosition, newPosition) or\
+            self.isCanteringMove(role, curPosition, newPosition):
+            # refer to current player's pieces
+            pieces = self.userPieces if role == self.ROLE_USER else self.AIPieces
+            curretPieceName = pieces[curPosition]
+            # move select piece to current position
+            pieces.pop(curPosition)
+            pieces[newPosition] = curretPieceName
+
+        if self.isCapturingMove(role, curPosition, newPosition):
+            # refer to current player's pieces
+            pieces = self.userPieces if role == self.ROLE_USER else self.AIPieces
+            # refer to counter player's pieces, to be removed
+            counterPieces = self.AIPieces if role == self.ROLE_USER else self.userPieces
+            curretPieceName = pieces[curPosition]
+
+            pieceToDelete = (int((curPosition[0]+newPosition[0])/2), int((curPosition[1]+newPosition[1])/2))
+            # remove counter player's piece from backend
+            pieceToDeleteName = counterPieces[pieceToDelete]
+            counterPieces.pop(pieceToDelete)
+            # move select piece to current position
+            pieces.pop(curPosition)
+            pieces[newPosition] = curretPieceName
+           
 
 
     # whether it's a plain move
@@ -284,11 +315,16 @@ class GameBoard(tk.Frame):
                 return True
         return False
 
-    # the algorithm that will evaluate different moves and return the best next action
-    def AlphaBetaSearch(self):
-        # the alpha beta algorithm
-        action = MAX_VALUE(self, self.MIN_UTILITY, self.MAX_UITLITY)
-        return action[1]
+    # A switch which will change current round to the opposite value between 'white' and 'black'
+    def rotation(self):
+        self.currentRound = 'white' if self.currentRound == 'black' else 'black'
+
+    def AIAction(self):
+        action = self.AlphaBetaSearch()
+        self.performAction(self.ROLE_AI, action[0], action[1])
+        # print(action)
+        # change current round back to user
+        self.rotation()
 
     # Will return all actions in current statement
     def ACTIONS(self, role):
@@ -357,22 +393,105 @@ class GameBoard(tk.Frame):
 
         return actions
 
+    # the algorithm that will evaluate different moves and return the best next action
+    def AlphaBetaSearch(self):
+        # create a copy of current states, need to restore the state later
+        archivedUserPieces = self.userPieces.copy()
+        archivedAIPieces = self.AIPieces.copy()
 
+        # the alpha beta algorithm
+        result = self.MAX_VALUE(self.MIN_UTILITY, self.MAX_UITLITY, 0)
 
-    # # will be called by AlphaBetaSearch
-    # def MAX_VALUE(self, depth):
-    #     if self.TerminalTest():
-    #         return self.UTILITY()
-    #     if depth == self.CUT_OFF_LEVEL
-    #         return self.EVAL()
-    #     value = self.MIN_UTILITY
-    #     for action in self.ACTIONS(self.ROLE_AI):
+        # restore state
+        self.userPieces = archivedUserPieces.copy()
+        self.AIPieces = archivedAIPieces.copy()
+
+        return result[1]
+
+    # will be called by AlphaBetaSearch
+    def MAX_VALUE(self, alpha, beta, depth):
+        if self.TerminalTest():
+            return (self.UTILITY(), )
+        if depth == self.CUT_OFF_LEVEL:
+            return (self.EVAL(), )
+
+        # result will record both the return value and corresponding action
+        # only initial it with MIN_UTILITY here
+        result = (self.MIN_UTILITY, )
+
+        for action in self.ACTIONS(self.ROLE_AI):
+            # archive current state
+            archivedUserPieces = self.userPieces.copy()
+            archivedAIPieces = self.AIPieces.copy()
+
+            print("[MAX_VALUE]: " + str(action))
+            # use simulate action to perform action in back end, not refresh front end
+            self.simulateAction(self.ROLE_AI, action[0], action[1])
+
+            # print("[MAX_VALUE]: going to call MIN_VALUE")
+
+            # result = max(value, self.MIN_VALUE(alpha, beta, depth+1))
+            tmp = self.MIN_VALUE(alpha, beta, depth+1)
+            # print("[MAX_VALUE]: return value from MIN_VALUE" + str(tmp))
+
+            # print("[MAX_VALUE]# archivedUserPieces: " + str(archivedAIPieces))
+            # restore previous state
+            self.userPieces = archivedUserPieces.copy()
+            self.AIPieces = archivedAIPieces.copy()
+
+            if tmp[0] > result[0]:
+                result = (tmp[0], action)
+
+            if result[0] > beta:
+                return result
+
+            alpha = max(alpha, result[0])
+
             
+        return result
+
 
         
+    # will be called by AlphaBetaSearch
+    def MIN_VALUE(self, alpha, beta, depth):
 
-    # def MIN_VALUE(self):
-    #     # will be called by AlphaBetaSearch
+        if self.TerminalTest():
+            return (self.UTILITY(), )
+        if depth == self.CUT_OFF_LEVEL:
+            return (self.EVAL(), )
+
+        # result will record both the return value and corresponding action
+        # only initial it with MAX_UTILITY here
+        result = (self.MAX_UITLITY, )
+
+        for action in self.ACTIONS(self.ROLE_USER):
+            # archive current state
+            archivedUserPieces = self.userPieces.copy()
+            archivedAIPieces = self.AIPieces.copy()
+
+            print("[MIN_VALUE]: " + str(action))
+
+            # use simulate action to perform action in back end, not refresh front end
+            self.simulateAction(self.ROLE_USER, action[0], action[1])
+
+             # restore previous state
+            self.userPieces = archivedUserPieces.copy()
+            self.AIPieces = archivedAIPieces.copy()
+
+            tmp = self.MAX_VALUE(alpha, beta, depth+1)
+            if tmp[0] < result[0]:
+                result = (tmp[0], action)
+
+            if result[0] < alpha:
+                return result
+
+            beta = max(beta, result[0])
+
+           
+
+        return result
+
+
 
     # the evaluation function that will return a evaluaion value according to currrent state
     def EVAL(self):
@@ -381,10 +500,10 @@ class GameBoard(tk.Frame):
         result -= len(self.userPieces)*50
 
         for piece in self.AIPieces:
-            result += 5*abs(piece[0] - self.user_castles[0][0])
+            result -= 5*abs(piece[0] - self.user_castles[0][0])
 
         for piece in self.userPieces:
-            result -= 5*abs(piece[0] - self.AI_castles[0][0])
+            result += 5*abs(piece[0] - self.AI_castles[0][0])
 
         return result
 
