@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 
 
 class GameBoard(tk.Frame):
-    def __init__(self, parent, userPieceColor, rows=14, columns=8, size=56, color="white"):
+    def __init__(self, parent, userPieceColor, level=1, rows=14, columns=8, size=56, color="white"):
         '''size is the size of a square, in pixels'''
 
         self.rows = rows
@@ -16,7 +16,7 @@ class GameBoard(tk.Frame):
         self.blackPieces = {}
         self.currentRound = 'white'
 
-        self.CUT_OFF_LEVEL = 3
+        self.CUT_OFF_LEVEL = int(level)
 
         #represent the min utility value
         self.MIN_UTILITY = -10000000
@@ -587,18 +587,28 @@ class GameBoard(tk.Frame):
 
 
 if __name__ == "__main__":
-    items = {'w':'white','b':'black'}
+    roles = {'w':'white','b':'black'}
     while True:
         Choose_Item = input("Please choice the color you like:\n['w' for white]\n['b' for black]\n['q' for quit]\n").lower()
         if Choose_Item == "w" or Choose_Item == "b":
-            print("your choice is: " + items[Choose_Item])
+            print("your choice is: " + roles[Choose_Item])
             break
         elif Choose_Item == "q":
             print("See you...")
             exit()
 
+    level_list = {'1': 'easy', '2': 'middle', '3': 'hard'}
+    while True:
+        level = input("Please choice the level you like:\n['1' for easy]\n['2' for middle]\n['3' for hard]\n['q' for quit]\n")
+        if level in ['1','2','3']:
+            print("your choioce is: " + level_list[level])
+            break
+        elif level == 'q':
+            print("See you...")
+            exit()
+
     root = tk.Tk()
-    board = GameBoard(root, items[Choose_Item])
+    board = GameBoard(root, roles[Choose_Item], level)
     board.pack(side="top", fill="both", expand="True", padx=4, pady=4)
 
     root.mainloop()
