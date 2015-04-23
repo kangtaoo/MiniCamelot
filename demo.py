@@ -370,61 +370,28 @@ class GameBoard(tk.Frame):
             pieces = self.AIPieces
 
         for piece in pieces:
-            # move up
-            if self.isPlainMove(piece, (piece[0]-1, piece[1])):
-                actions.append((piece, (piece[0]-1, piece[1])))
-            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1])) or\
-                self.isCanteringMove(role, piece, (piece[0]-2, piece[1])):
-                actions.append((piece, (piece[0]-2, piece[1])))
+            '''
+            <moving sequence: clockwirse>
+            [up], [northeast], [right], [sourtheast], [down], [sourthwest], [left], [northwest]
+            '''
+            for newPosition in [(piece[0]-1, piece[1]),\
+                            (piece[0]-1, piece[1]+1),\
+                            (piece[0], piece[1]+1), \
+                            (piece[0]+1, piece[1]+1),\
+                            (piece[0]+1, piece[1]),\
+                            (piece[0]+1, piece[1]-1),\
+                            (piece[0], piece[1]-1), \
+                            (piece[0]-1, piece[1]-1)]:
 
-            # move to northeast degree
-            if self.isPlainMove(piece, (piece[0]-1, piece[1]+1)):
-                actions.append((piece, (piece[0]-1, piece[1]+1)))
-            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1]+2)) or\
-                self.isCanteringMove(role, piece, (piece[0]-2, piece[1]+2)):
-                actions.append((piece, (piece[0]-2, piece[1]+2)))
-
-            # move to right
-            if self.isPlainMove(piece, (piece[0], piece[1]+1)):
-                actions.append((piece, (piece[0], piece[1]+1)))
-            elif self.isCapturingMove(role, piece, (piece[0], piece[1]+2)) or\
-                self.isCanteringMove(role, piece, (piece[0], piece[1]+2)):
-                actions.append((piece, (piece[0], piece[1]+2)))
-
-            # move to sourtheast degree
-            if self.isPlainMove(piece, (piece[0]+1, piece[1]+1)):
-                actions.append((piece, (piece[0]+1, piece[1]+1)))
-            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1]+2)) or\
-                self.isCanteringMove(role, piece, (piece[0]+2, piece[1]+2)):
-                actions.append((piece, (piece[0]+2, piece[1]+2)))
-
-            # move down
-            if self.isPlainMove(piece, (piece[0]+1, piece[1])):
-                actions.append((piece, (piece[0]+1, piece[1])))
-            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1])) or\
-                self.isCanteringMove(role, piece, (piece[0]+2, piece[1])):
-                actions.append((piece, (piece[0]+2, piece[1])))
-
-            # move sourthwest
-            if self.isPlainMove(piece, (piece[0]+1, piece[1]-1)):
-                actions.append((piece, (piece[0]+1, piece[1]-1)))
-            elif self.isCapturingMove(role, piece, (piece[0]+2, piece[1]-2)) or\
-                self.isCanteringMove(role, piece, (piece[0]+2, piece[1]-2)):
-                actions.append((piece, (piece[0]+2, piece[1]-2)))
-
-            # move left
-            if self.isPlainMove(piece, (piece[0], piece[1]-1)):
-                actions.append((piece, (piece[0], piece[1]-1)))
-            elif self.isCapturingMove(role, piece, (piece[0], piece[1]-2)) or\
-                self.isCanteringMove(role, piece, (piece[0], piece[1]-2)):
-                actions.append((piece, (piece[0], piece[1]-2)))
-
-            # move northwest
-            if self.isPlainMove(piece, (piece[0]-1, piece[1]-1)):
-                actions.append((piece, (piece[0]-1, piece[1]-1)))
-            elif self.isCapturingMove(role, piece, (piece[0]-2, piece[1]-2)) or\
-                self.isCanteringMove(role, piece, (piece[0]-2, piece[1]-2)):
-                actions.append((piece, (piece[0]-2, piece[1]-2)))
+                if self.isPlainMove(piece, newPosition):
+                    actions.append((piece, newPosition))
+                else:
+                    newPostion2 = (piece[0]+2*(newPosition[0]-piece[0]), \
+                        piece[1]+2*(newPosition[1]-piece[1]))
+                    if self.isCapturingMove(role, piece, newPostion2) or \
+                        self.isCanteringMove(role, piece, newPostion2):
+                        # add current jump move into action list
+                        actions.append((piece, newPostion2))
 
         return actions
 
@@ -598,15 +565,15 @@ class GameBoard(tk.Frame):
 
         for piece in self.AIPieces:
             # make sure AI pieces move towards user castle
-            result -= 10*abs(piece[0] - self.user_castles[0][0])
+            result -= 5*abs(piece[0] - self.user_castles[0][0])
             # make sure AI pieces move towards central path
-            result -= 5*abs(piece[1] - 3)
+            # result -= 5*abs(piece[1] - 3)
 
         for piece in self.userPieces:
             # make sure AI pieces keep user pieces away from moving towards AI castle
-            result += 10*abs(piece[0] - self.AI_castles[0][0])
+            result += 5*abs(piece[0] - self.AI_castles[0][0])
             # make sure AI pieces keep user pieces away from moving towards central path
-            result += 5*abs(piece[1] - 3)
+            # result += 5*abs(piece[1] - 3)
 
         return result
 
