@@ -525,12 +525,12 @@ class GameBoard(tk.Frame):
 
             # use simulate action to perform action in back end, not refresh front end
             self.simulateAction(self.ROLE_USER, action[0], action[1])
+            tmp, tmpAct, dep, nodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(alpha, beta, depth+1)
 
             # restore previous state
             self.userPieces = archivedUserPieces.copy()
             self.AIPieces = archivedAIPieces.copy()
 
-            tmp, tmpAct, dep, nodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(alpha, beta, depth+1)
 
             # keep record of min uitility value as well as corresponding actions
             if val > tmp:
