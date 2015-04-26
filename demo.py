@@ -1,5 +1,6 @@
 import tkinter as tk
-from PIL import Image, ImageTk
+# from PIL import Image, ImageTk
+import time
 
 
 
@@ -87,6 +88,7 @@ class GameBoard(tk.Frame):
 
         # this binding will cause a refresh if the user interactively
         # changes the window size
+
         self.canvas.bind("<Configure>", self.refresh)
         self.canvas.bind("<Button-1>", self.onClick)
 
@@ -95,7 +97,6 @@ class GameBoard(tk.Frame):
         self.canvas.create_image(0,0, image=image, tags=(name, "piece"), anchor="c")
         self.place_piece(name, row, column)
 
-        # print("in addpiece")
 
     # Place a piece at the given row/column
     def place_piece(self, name, row, column):
@@ -188,6 +189,17 @@ class GameBoard(tk.Frame):
         else:
             print("Sorry, you lose...")
 
+    # This function will perform path which is a list of acitons
+    def performPath(self, role, path):
+        print("[performPath] - going to perform path: " + str(path))
+        if isinstance(path, list):
+            for action in path:
+                self.performAction(role, action[0], action[1])
+
+        else:
+            self.performAction(role, path[0], path[1])
+
+
     # This function will perform action as given role
     def performAction(self, role, curPosition, newPosition):
         print("[performAciont] - " + str(curPosition) + " -> " + str(newPosition))
@@ -228,9 +240,31 @@ class GameBoard(tk.Frame):
             # add new piece
             self.add_piece(curretPieceName, piece, newPosition[0], newPosition[1])
 
+
+    # This functino will simulate path which is a list of actions
+    def simulatePath(self, role, path):
+        # #############################################################################
+        # print("[simulatePath] - going to simulate the following path:" + str(path))
+        # print("[simulatePath] - current user pieces: " + str(self.userPieces))
+        # print("[simulatePath] - current AI pieces: " + str(self.AIPieces))
+        # #############################################################################
+
+        if isinstance(path, list):
+            for action in path:
+                self.simulateAction(role, action[0], action[1])
+        else:
+            self.simulateAction(role, path[0], path[1])
+
+        # #############################################################################    
+        # print("[simulatePath] - after the simulate")
+        # print("[simulatePath] - current user pieces: " + str(self.userPieces))
+        # print("[simulatePath] - current AI pieces: " + str(self.AIPieces))
+        # #############################################################################
     # this function only perform action in back end, do not update front end element
     def simulateAction(self, role, curPosition, newPosition):
         # print("[simulateAction] - role: " + role + " action: " + str(curPosition) + " - " + str(newPosition))
+        # print("[simulateAction] - current user pieces: " + str(self.userPieces))
+        # print("[simulateAction] - current AI pieces: " + str(self.AIPieces))
 
         if self.isPlainMove(curPosition, newPosition) or\
             self.isCanteringMove(role, curPosition, newPosition):
@@ -348,12 +382,18 @@ class GameBoard(tk.Frame):
 
     def AIAction(self):
         # Get action via alpha beta search
-        action = self.AlphaBetaSearch()
+        path = self.AlphaBetaSearch()
 
-        print("[AIAction] - " +  str(action))
+        # print("[AIAction] - going to perform the following path: " +  str(path))
+
+        if not path:
+            print("[AIAction] - No path is going to be performed")
+            return
 
         # perform action
-        self.performAction(self.ROLE_AI, action[0], action[1])
+        self.performPath(self.ROLE_AI, path)
+
+        # print("[AIAction] - after perform action, pieces: " + str(self.AIPieces))
 
         if self.isAIWin():
             self.gameFinished(self.ROLE_AI)
@@ -362,42 +402,134 @@ class GameBoard(tk.Frame):
             self.rotation()
 
     # Will return all actions in current statement
-    def ACTIONS(self, role):
+    def ACTIONS(self, role, path, explored):
+        # print("[ACTIONS] ENTRY - current path: " + str(path) + " explored list: " + str(explored))
+        #######################################
+        #for test, to be delete
+        self.ACTION_LEVEL += 1
+        current_action_level = self.ACTION_LEVEL
+
+        # print("[ACTIONS] - current action level:" + str(current_action_level))
+        # print("[ACTIONS] - current path:" + str(path))
+        #######################################
         actions = []
         if role == self.ROLE_USER:
             pieces = self.userPieces
         else:
             pieces = self.AIPieces
 
-        for piece in pieces:
-            '''
-            <moving sequence: clockwirse>
-            [up], [northeast], [right], [sourtheast], [down], [sourthwest], [left], [northwest]
-            '''
-            for newPosition in [(piece[0]-1, piece[1]),\
-                            (piece[0]-1, piece[1]+1),\
-                            (piece[0], piece[1]+1), \
-                            (piece[0]+1, piece[1]+1),\
-                            (piece[0]+1, piece[1]),\
-                            (piece[0]+1, piece[1]-1),\
-                            (piece[0], piece[1]-1), \
-                            (piece[0]-1, piece[1]-1)]:
+        # make a copy of current move, to make sure the simulation process will not mess current state
+        pieceCopy = pieces.copy()
 
-                if self.isPlainMove(piece, newPosition):
-                    actions.append((piece, newPosition))
-                else:
-                    newPostion2 = (piece[0]+2*(newPosition[0]-piece[0]), \
-                        piece[1]+2*(newPosition[1]-piece[1]))
-                    if self.isCapturingMove(role, piece, newPostion2) or \
-                        self.isCanteringMove(role, piece, newPostion2):
-                        # add current jump move into action list
-                        actions.append((piece, newPostion2))
+        # no in a successive move
+        if not path:
+            # not in a successive path
+            for piece in pieceCopy:
+                '''
+                <moving sequence: clockwirse>
+                [up], [northeast], [right], [sourtheast], [down], [sourthwest], [left], [northwest]
+                '''
+                for newPosition in [(piece[0]-1, piece[1]),\
+                                (piece[0]-1, piece[1]+1),\
+                                (piece[0], piece[1]+1), \
+                                (piece[0]+1, piece[1]+1),\
+                                (piece[0]+1, piece[1]),\
+                                (piece[0]+1, piece[1]-1),\
+                                (piece[0], piece[1]-1), \
+                                (piece[0]-1, piece[1]-1)]:
 
+                    if self.isPlainMove(piece, newPosition):
+                        actions.append((piece, newPosition))
+                    else:
+                        newPosition2 = (piece[0]+2*(newPosition[0]-piece[0]), \
+                            piece[1]+2*(newPosition[1]-piece[1]))
+                        if self.isCapturingMove(role, piece, newPosition2) or \
+                            self.isCanteringMove(role, piece, newPosition2):
+                            # add current jump move into action list
+
+                            # add current jump into actions
+                            actions.append((piece, newPosition2))
+
+                            # archive current state
+                            archivedUserPieces = self.userPieces.copy()
+                            archivedAIPieces = self.AIPieces.copy()
+
+                            # print("[ACTIONS] - current action level:" + str(current_action_level))
+                            # print("[ACTIONS] - going to simulate the following action:" + str((piece, newPosition2)))
+
+                            self.simulateAction(role, piece, newPosition2)
+                            # print("[ACTIONS] - current action level:" + str(current_action_level))
+
+                            # Add further successive jumps into actions
+                            actions += self.ACTIONS(role, [(piece, newPosition2)], [piece])
+
+                             # restore previous state
+                            self.userPieces = archivedUserPieces.copy()
+                            self.AIPieces = archivedAIPieces.copy()
+        else:
+            '''
+            in a successive path, 
+            1. only considering the piece appears in the rear of current path
+            2. only considering the jump move, no plain move any more
+            '''
+            # get the last action in the path, get the second postition in an action
+            piece = path[-1][1]
+            for newPosition in [(piece[0]-2, piece[1]),\
+                                (piece[0]-2, piece[1]+2),\
+                                (piece[0], piece[1]+2), \
+                                (piece[0]+2, piece[1]+2),\
+                                (piece[0]+2, piece[1]),\
+                                (piece[0]+2, piece[1]-2),\
+                                (piece[0], piece[1]-2), \
+                                (piece[0]-2, piece[1]-2)]:
+
+                if newPosition not in explored and \
+                    ( self.isCanteringMove(role, piece, newPosition) or\
+                    self.isCapturingMove(role, piece, newPosition) ):
+
+                    newExplored = explored.copy()
+                    newExplored.append(piece)
+                    # explored.append(piece)
+
+                    # archive current state
+                    archivedUserPieces = self.userPieces.copy()
+                    archivedAIPieces = self.AIPieces.copy()
+
+                    newPath = path.copy()
+                    newPath.append((piece, newPosition))
+                    actions.append(newPath)
+                    # print("[ACTIONS] - current action level:" + str(current_action_level))
+                    # print("[ACTIONS] - going to simulate the following action:" + str((piece, newPosition)))
+                    # print("[ACTIONS] - current user pieces: " + str(self.userPieces))
+                    # print("[ACTIONS] - current AI pieces: " + str(self.AIPieces))
+                    # only simulate current single step action
+                    self.simulateAction(role, piece, newPosition)
+                    # print("[ACTIONS] - current action level:" + str(current_action_level))
+                    # print("[ACTIONS] - After the simulation")
+                    # print("[ACTIONS] - current user pieces: " + str(self.userPieces))
+                    # print("[ACTIONS] - current AI pieces: " + str(self.AIPieces))
+
+                    actions += self.ACTIONS(role, newPath, newExplored)
+                    # print("[ACTIONS] - current actions: " + str(actions))
+
+
+                    # restore previous state
+                    self.userPieces = archivedUserPieces.copy()
+                    self.AIPieces = archivedAIPieces.copy()
+
+        # print("[ACTIONS] EXIT - returned actions: " + str(actions))
         return actions
 
     # the algorithm that will evaluate different moves and return the best next action
     def AlphaBetaSearch(self):
         # create a copy of current states, need to restore the state later
+
+        ########################
+        # for test, to be removed
+        self.ACTION_LEVEL = 0
+        ########################
+
+
         archivedUserPieces = self.userPieces.copy()
         archivedAIPieces = self.AIPieces.copy()
 
@@ -429,13 +561,18 @@ class GameBoard(tk.Frame):
     '''  
     # will be called by AlphaBetaSearch
     def MAX_VALUE(self, alpha, beta, depth):
+        # print("[MAX_VALUE] ENTRY")
         if self.TerminalTest():
+            # print("[MAX_VALUE] - TERMINAL TEST")
             return self.UTILITY(), None, 1, 0, 0, 0
         if depth == self.CUT_OFF_LEVEL:
+            # print("[MAX_VALUE] CUTTING")
             return self.EVAL(), None, 1, 0, 0, 0
 
         # result will record both the return value and corresponding action
         # only initial it with MIN_UTILITY here
+
+
 
         totalNodeNum = 0
         returnAct = None
@@ -445,14 +582,16 @@ class GameBoard(tk.Frame):
 
         val = self.MIN_UTILITY
 
-        for action in self.ACTIONS(self.ROLE_AI):
+        # print("[MAX_VALUE] - calling self.ACTIONS")
+
+        for path in self.ACTIONS(self.ROLE_AI, None, []):
             # archive current state
             archivedUserPieces = self.userPieces.copy()
             archivedAIPieces = self.AIPieces.copy()
 
             # print("[MAX_VALUE]: " + str(action))
             # use simulate action to perform action in back end, not refresh front end
-            self.simulateAction(self.ROLE_AI, action[0], action[1])
+            self.simulatePath(self.ROLE_AI, path)
 
             # print("[MAX_VALUE]: going to call MIN_VALUE")
 
@@ -467,7 +606,7 @@ class GameBoard(tk.Frame):
 
             if tmp > val:
                 val = tmp
-                returnAct = action
+                returnAct = path
 
             totalNodeNum += (nodeNum+1)
             totalPrunNumMax += prunNumMax
@@ -483,7 +622,7 @@ class GameBoard(tk.Frame):
 
             alpha = max(alpha, val)
 
-            
+        # print("[MAX_VALUE] EXIT")
         return val, returnAct, maxDepth, totalNodeNum, totalPrunNumMax, totalPrunNumMin
 
 
@@ -516,7 +655,7 @@ class GameBoard(tk.Frame):
         totalPrunNumMax = 0
         maxDepth= 0
 
-        for action in self.ACTIONS(self.ROLE_USER):
+        for path in self.ACTIONS(self.ROLE_USER, None, []):
             # archive current state
             archivedUserPieces = self.userPieces.copy()
             archivedAIPieces = self.AIPieces.copy()
@@ -524,18 +663,17 @@ class GameBoard(tk.Frame):
             # print("[MIN_VALUE]: " + str(action))
 
             # use simulate action to perform action in back end, not refresh front end
-            self.simulateAction(self.ROLE_USER, action[0], action[1])
+            self.simulatePath(self.ROLE_USER, path)
             tmp, tmpAct, dep, nodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(alpha, beta, depth+1)
 
             # restore previous state
             self.userPieces = archivedUserPieces.copy()
             self.AIPieces = archivedAIPieces.copy()
 
-
             # keep record of min uitility value as well as corresponding actions
             if val > tmp:
                 val = tmp
-                returnAct = action
+                returnAct = path
 
             # count node number that has been created
             totalNodeNum += (nodeNum+1)
