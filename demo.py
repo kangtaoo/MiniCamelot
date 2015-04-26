@@ -534,7 +534,7 @@ class GameBoard(tk.Frame):
         archivedAIPieces = self.AIPieces.copy()
 
         # the alpha beta algorithm
-        val, returnAct, dep, totalNodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(self.MIN_UTILITY, self.MAX_UITLITY, 1)
+        val, returnAct, dep, totalNodeNum, prunNumMax, prunNumMin = self.MAX_VALUE(self.MIN_UTILITY, self.MAX_UITLITY, 0)
 
         # restore state
         self.userPieces = archivedUserPieces.copy()
@@ -564,10 +564,10 @@ class GameBoard(tk.Frame):
         # print("[MAX_VALUE] ENTRY")
         if self.TerminalTest():
             # print("[MAX_VALUE] - TERMINAL TEST")
-            return self.UTILITY(), None, 1, 0, 0, 0
+            return self.UTILITY(), None, 0, 0, 0, 0
         if depth == self.CUT_OFF_LEVEL:
             # print("[MAX_VALUE] CUTTING")
-            return self.EVAL(), None, 1, 0, 0, 0
+            return self.EVAL(), None, 0, 0, 0, 0
 
         # result will record both the return value and corresponding action
         # only initial it with MIN_UTILITY here
@@ -641,9 +641,9 @@ class GameBoard(tk.Frame):
     def MIN_VALUE(self, alpha, beta, depth):
 
         if self.TerminalTest():
-            return self.UTILITY(), None, 1, 0, 0, 0
+            return self.UTILITY(), None, 0, 0, 0, 0
         if depth == self.CUT_OFF_LEVEL:
-            return self.EVAL(), None, 1, 0, 0, 0
+            return self.EVAL(), None, 0, 0, 0, 0
 
         # result will record both the return value and corresponding action
         # only initial it with MAX_UTILITY here
