@@ -83,14 +83,23 @@ class GameBoard(tk.Frame):
         self.add_piece("black_5", self.black, 9,4)
         self.add_piece("black_6", self.black, 9,5)
 
-        # will record piece name that can be recongnized by canvas
+        # will record piece name that can be recongnized by canvas 
         self.curPiece = None
 
-        # this binding will cause a refresh if the user interactively
-        # changes the window size
+        # flag, will mark whether user is in the middle of successive action
+        self.isInSuccessiveAction = False
 
+        # to keep all locations current successvie action has been passed
+        self.historyLocations = []
+
+        '''
+        this binding will cause a refresh if the user interactively
+        changes the window size
+        '''
+        # Need to set focus on canvas inorder to let key bind work
+        self.canvas.bind("<Button-2>", self.onRightClick)
         self.canvas.bind("<Configure>", self.refresh)
-        self.canvas.bind("<Button-1>", self.onClick)
+        self.canvas.bind("<Button-1>", self.onClick)        
 
     def add_piece(self, name, image, row=0, column=0):
         '''Add a piece to the playing board'''
@@ -146,6 +155,32 @@ class GameBoard(tk.Frame):
         self.canvas.tag_raise("piece")
         self.canvas.tag_lower("square")
 
+    def onRightClick(self, event):
+        print("right button is clicked")
+
+        '''
+        If user choice back piece, this will trigger AI to perform act first
+        '''
+        if(self.currentRound != self.userPieceColor):
+            print("return round: " + str(self.currentRound))
+            print("user color: " + self.userPieceColor)
+            # This will kick off the game when user choice black
+            self.AIAction()
+            return
+
+        
+        # clear self.curPiece
+        # clear self.isInSuccessiveAction
+        self.curPiece = None
+        self.isInSuccessiveAction = False
+        self.historyLocations = []
+
+        # Change current round to AI
+        # Trigger AIAction
+        self.rotation()
+        self.AIAction()
+
+
     def onClick(self, event):
         if(self.currentRound != self.userPieceColor):
             print("return round: " + str(self.currentRound))
@@ -159,27 +194,55 @@ class GameBoard(tk.Frame):
 
         # click on user piece
         if (row,col) in self.userPieces:
-            self.curPiece = (row,col)
-            print("currentlly selected pieces: " + str((row,col)) + " " + self.userPieces[(row,col)])
-            print("Selected piece: " + str(self.curPiece))
+            if not self.isInSuccessiveAction:
+                self.curPiece = (row,col)
+                print("currentlly selected pieces: " + str((row,col)) + " " + self.userPieces[(row,col)])
+                print("Selected piece: " + str(self.curPiece))
 
         # click on non-piece block to indicate that user whant to move piece to this chess board block
         elif self.curPiece is not None:
-            # make a plain move or cantering move
-            if self.isPlainMove(self.curPiece, (row, col)) or self.isCanteringMove(self.ROLE_USER, self.curPiece, (row, col)):
+            # make a plain move
+            if self.isPlainMove(self.curPiece, (row, col)) and \
+                not self.isInSuccessiveAction:
+
                 self.performAction(self.ROLE_USER, self.curPiece, (row, col))
-                self.curPiece = (row,col)
+                # clean current piece
+                self.curPiece = None
+                # roate to AI and triger AI action after perform plain move
+                self.rotation()
+                self.AIAction()
+                return
+
+            # make a cantering move
+            if self.isCanteringMove(self.ROLE_USER, self.curPiece, (row, col)) or\
+                self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
+                if (row, col) not in self.historyLocations:
+                    self.performAction(self.ROLE_USER, self.curPiece, (row, col))
+                    # add previous location into history location list
+                    self.historyLocations.append(self.curPiece)
+                    # refresh self.curPiece to current location
+                    self.curPiece = (row,col)
+                else:
+                    print("Sorry, but you have been to position " + str((row, col)) + " in this round...")
+                if not self.isInSuccessiveAction:
+                    self.isInSuccessiveAction = True
+                
 
             # make a capturing move
-            if self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
-                self.performAction(self.ROLE_USER, self.curPiece, (row, col))
-                self.curPiece = (row,col)
+            # if self.isCapturingMove(self.ROLE_USER, self.curPiece, (row, col)):
+            #     self.performAction(self.ROLE_USER, self.curPiece, (row, col))
+            #     self.curPiece = (row,col)
 
             if self.isUserWin():
                 self.gameFinished(self.ROLE_USER)
-            else:
-                self.rotation()
-                self.AIAction()
+
+            ####################################################
+            # Moving the following to function returnKeyCallBack
+            # so that user can perform successive jump
+            # else:
+            #     self.rotation()
+            #     self.AIAction()
+            ####################################################
 
     def gameFinished(self, role):
         self.currentRound = None
@@ -379,6 +442,7 @@ class GameBoard(tk.Frame):
     # A switch which will change current round to the opposite value between 'white' and 'black'
     def rotation(self):
         self.currentRound = 'white' if self.currentRound == 'black' else 'black'
+        print("Current round is: " + self.currentRound)
 
     def AIAction(self):
         # Get action via alpha beta search
